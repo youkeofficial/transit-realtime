@@ -1,0 +1,114 @@
+@page "{id:guid}"
+@model TransitRealtime.Web.Pages.Services.DetailsModel
+@{
+    ViewData["Title"] = Model.Service.Name;
+}
+
+<h1>@Model.Service.Name</h1>
+<p class="text-muted">@Model.Service.Description</p>
+
+@if (!string.IsNullOrEmpty(Model.NewApiKey))
+{
+    <div class="alert alert-warning">
+        <strong>Nouvelle clé API — copie-la maintenant, elle ne sera plus jamais affichée :</strong>
+        <pre class="mb-0">@Model.NewApiKey</pre>
+    </div>
+}
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <dl class="row">
+            <dt class="col-sm-3">Statut</dt>
+            <dd class="col-sm-9">
+                @if (Model.Service.IsActive)
+                {
+                    <span class="badge bg-success">Actif</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Désactivé</span>
+                }
+            </dd>
+            <dt class="col-sm-3">Clients connectés</dt>
+            <dd class="col-sm-9">@Model.ConnectedClients</dd>
+            <dt class="col-sm-3">Webhook URL</dt>
+            <dd class="col-sm-9"><code>@Model.WebhookUrl</code></dd>
+            <dt class="col-sm-3">Header requis</dt>
+            <dd class="col-sm-9"><code>X-Api-Key: &lt;clé&gt;</code></dd>
+            <dt class="col-sm-3">WebSocket (SignalR hub)</dt>
+            <dd class="col-sm-9"><code>@Model.WsUrl</code> — rejoindre le groupe avec <code>JoinService("@Model.Service.Id")</code></dd>
+        </dl>
+
+        <form method="post" asp-page-handler="ToggleActive">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+                @(Model.Service.IsActive ? "Désactiver" : "Réactiver") le service
+            </button>
+        </form>
+    </div>
+</div>
+
+<h2>Clés API</h2>
+<form method="post" asp-page-handler="GenerateKey" class="mb-3">
+    <button type="submit" class="btn btn-primary btn-sm">+ Générer une nouvelle clé</button>
+</form>
+
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>Préfixe</th>
+            <th>Créée le</th>
+            <th>Statut</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var key in Model.Service.ApiKeys.OrderByDescending(k => k.CreatedAt))
+    {
+        <tr>
+            <td><code>@key.KeyPrefix…</code></td>
+            <td>@key.CreatedAt.ToLocalTime().ToString("g")</td>
+            <td>
+                @if (key.IsActive)
+                {
+                    <span class="badge bg-success">Active</span>
+                }
+                else
+                {
+                    <span class="badge bg-secondary">Révoquée</span>
+                }
+            </td>
+            <td>
+                @if (key.IsActive)
+                {
+                    <form method="post" asp-page-handler="RevokeKey" asp-route-keyId="@key.Id">
+                        <button type="submit" class="btn btn-outline-danger btn-sm">Révoquer</button>
+                    </form>
+                }
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<h2>Activité récente</h2>
+<table class="table table-sm">
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Événement</th>
+            <th>IP source</th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var log in Model.RecentLogs)
+    {
+        <tr>
+            <td>@log.Timestamp.ToLocalTime().ToString("g")</td>
+            <td>@log.EventType</td>
+            <td>@log.SourceIp</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+<a asp-page="Index">&larr; Retour à la liste</a>
