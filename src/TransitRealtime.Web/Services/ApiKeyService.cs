@@ -1,4 +1,3 @@
-using System.Security.Cryptography;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using TransitRealtime.Web.Data;
@@ -58,13 +57,5 @@ public class ApiKeyService(ApplicationDbContext db)
         return false;
     }
 
-    private static string GenerateRawKey()
-    {
-        var bytes = RandomNumberGenerator.GetBytes(32);
-        var token = Convert.ToBase64String(bytes)
-            .Replace('+', '-')
-            .Replace('/', '_')
-            .TrimEnd('=');
-        return $"svc_{token}";
-    }
+    private static string GenerateRawKey() => $"svc_{SecretGenerator.Generate()}";
 }

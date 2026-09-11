@@ -35,6 +35,7 @@ public class CreateModel(ApplicationDbContext db, ApiKeyService apiKeys) : PageM
             Name = Input.Name,
             Description = Input.Description,
             CreatedByUserId = User.Identity?.Name,
+            SubscriberSecret = SecretGenerator.Generate(),
         };
         db.TransitServices.Add(service);
         await db.SaveChangesAsync();
@@ -49,6 +50,7 @@ public class CreateModel(ApplicationDbContext db, ApiKeyService apiKeys) : PageM
         await db.SaveChangesAsync();
 
         TempData["NewApiKey"] = generated.RawKey;
+        TempData["NewSubscriberSecret"] = service.SubscriberSecret;
         return RedirectToPage("Details", new { id = service.Id });
     }
 }

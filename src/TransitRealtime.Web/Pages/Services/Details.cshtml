@@ -10,8 +10,16 @@
 @if (!string.IsNullOrEmpty(Model.NewApiKey))
 {
     <div class="alert alert-warning">
-        <strong>Nouvelle clé API — copie-la maintenant, elle ne sera plus jamais affichée :</strong>
+        <strong>Nouvelle clé API (webhook) — copie-la maintenant, elle ne sera plus jamais affichée :</strong>
         <pre class="mb-0">@Model.NewApiKey</pre>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(Model.NewSubscriberSecret))
+{
+    <div class="alert alert-warning">
+        <strong>Secret d'abonné (signe les tokens JoinChannel) — copie-le maintenant, il ne sera plus jamais affiché :</strong>
+        <pre class="mb-0">@Model.NewSubscriberSecret</pre>
     </div>
 }
 
@@ -36,13 +44,28 @@
             <dt class="col-sm-3">Header requis</dt>
             <dd class="col-sm-9"><code>X-Api-Key: &lt;clé&gt;</code></dd>
             <dt class="col-sm-3">WebSocket (SignalR hub)</dt>
-            <dd class="col-sm-9"><code>@Model.WsUrl</code> — rejoindre le groupe avec <code>JoinService("@Model.Service.Id")</code></dd>
+            <dd class="col-sm-9">
+                <code>@Model.WsUrl</code>
+                <ul class="mb-0">
+                    <li>Diffusion large (tous les abonnés du service) : <code>JoinService("@Model.Service.Id")</code></li>
+                    <li>
+                        Ciblé par destinataire (recommandé si les payloads sont sensibles) :
+                        <code>JoinChannel("@Model.Service.Id", "&lt;recipientKey&gt;", "&lt;token&gt;")</code>
+                        — le <code>&lt;token&gt;</code> est un JWT HS256 signé avec le secret d'abonné ci-dessus,
+                        claims <code>sub=&lt;recipientKey&gt;</code>, <code>svc=@Model.Service.Id</code>, courte durée de vie.
+                        Webhook correspondant : <code>POST @Model.WebhookUrl/&lt;recipientKey&gt;</code>
+                    </li>
+                </ul>
+            </dd>
         </dl>
 
-        <form method="post" asp-page-handler="ToggleActive">
+        <form method="post" asp-page-handler="ToggleActive" class="d-inline">
             <button type="submit" class="btn btn-outline-secondary btn-sm">
                 @(Model.Service.IsActive ? "Désactiver" : "Réactiver") le service
             </button>
+        </form>
+        <form method="post" asp-page-handler="RegenerateSubscriberSecret" class="d-inline">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">Régénérer le secret d'abonné</button>
         </form>
     </div>
 </div>

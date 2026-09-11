@@ -19,7 +19,8 @@ public class WebhookDispatcher(
 {
     private const int MaxLoggedPayloadLength = 4000;
 
-    public async Task<DispatchResult> DispatchAsync(Guid serviceId, string rawApiKey, string payload, string? sourceIp)
+    public async Task<DispatchResult> DispatchAsync(
+        Guid serviceId, string rawApiKey, string payload, string? sourceIp, string? recipientKey = null)
     {
         var service = await db.TransitServices.FindAsync(serviceId);
         if (service is null || !service.IsActive)
@@ -37,7 +38,8 @@ public class WebhookDispatcher(
             return DispatchResult.Unauthorized;
         }
 
-        await hub.Clients.Group(serviceId.ToString()).SendAsync("ReceivePayload", payload);
+        var groupKey = TransitGroups.For(serviceId, recipientKey);
+        await hub.Clients.Group(groupKey).SendAsync("ReceivePayload", payload);
 
         db.AuditLogs.Add(new AuditLogEntry
         {

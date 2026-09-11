@@ -27,11 +27,26 @@ hub SignalR, et une clé API affichée **une seule fois**.
 
 ## Flux
 
+Deux modes de diffusion, au choix par service :
+
+**1. Diffusion large** (tous les abonnés du service reçoivent tout) :
 1. Admin crée un service → URL webhook + clé API générées.
 2. Un client ouvre une connexion SignalR vers `/hub` et appelle `JoinService("<serviceId>")`.
 3. Une app source POST sur `/webhook/{serviceId}` avec le header `X-Api-Key: <clé>`.
 4. Le serveur valide la clé et diffuse le payload (événement `ReceivePayload`) à tous les clients du
    groupe `serviceId`.
+
+**2. Ciblé par destinataire** (recommandé dès que les payloads sont sensibles / propres à un utilisateur) :
+1. Admin crée un service → en plus de la clé API, un **secret d'abonné** est généré (affiché une seule
+   fois, régénérable depuis `/Services/Details`).
+2. Le backend source signe un JWT HS256 avec ce secret : claims `sub=<recipientKey>`, `svc=<serviceId>`,
+   courte durée de vie (ex: 60s), et le transmet au client concerné (ex: via un endpoint d'auth existant
+   côté app source).
+3. Le client appelle `JoinChannel("<serviceId>", "<recipientKey>", "<token>")` sur le hub — rejeté si le
+   token est invalide, expiré, ou si `sub`/`svc` ne correspondent pas à ce qui est demandé.
+4. L'app source POST sur `/webhook/{serviceId}/{recipientKey}` (même header `X-Api-Key`) → seul le
+   sous-groupe `serviceId::recipientKey` reçoit le payload. Les autres abonnés du même service ne voient
+   rien passer.
 
 ## Créer d'autres comptes admin
 
@@ -48,8 +63,9 @@ comptes admin via `/Admin/Users/Create`. L'auto-inscription publique est désact
 
 ## Limitations connues (MVP)
 
-- L'abonnement WebSocket à un service ne demande que le `serviceId` (pas de token d'abonné séparé) —
-  la clé API protège uniquement l'émission côté webhook. À durcir si les payloads sont sensibles.
+- Le mode "diffusion large" (`JoinService`) ne demande que le `serviceId`, sans authentification — à
+  réserver aux services dont les payloads ne sont pas sensibles. Pour tout le reste, utiliser le mode
+  ciblé (`JoinChannel` + JWT signé par le secret d'abonné).
 - Pas de rôles différenciés (Admin uniquement pour l'instant).
 - Un seul serveur / pas de backplane SignalR — suffisant tant qu'on reste sur une seule instance IIS.
 

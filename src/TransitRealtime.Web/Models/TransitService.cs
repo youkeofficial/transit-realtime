@@ -14,6 +14,9 @@ public class TransitService
 
     public bool IsActive { get; set; } = true;
 
+    /// <summary>HMAC-SHA256 key used to sign/verify short-lived subscriber tokens for JoinChannel.</summary>
+    public string SubscriberSecret { get; set; } = string.Empty;
+
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
 
     public string? CreatedByUserId { get; set; }

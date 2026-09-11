@@ -18,6 +18,7 @@ public class DetailsModel(ApplicationDbContext db, ApiKeyService apiKeys, Connec
     public string WebhookUrl { get; set; } = string.Empty;
     public string WsUrl { get; set; } = string.Empty;
     public string? NewApiKey { get; set; }
+    public string? NewSubscriberSecret { get; set; }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -35,6 +36,7 @@ public class DetailsModel(ApplicationDbContext db, ApiKeyService apiKeys, Connec
             .ToListAsync();
         ConnectedClients = tracker.GetCount(Id.ToString());
         NewApiKey = TempData["NewApiKey"] as string;
+        NewSubscriberSecret = TempData["NewSubscriberSecret"] as string;
 
         WebhookUrl = $"{Request.Scheme}://{Request.Host}/webhook/{Id}";
         var wsScheme = Request.Scheme == "https" ? "wss" : "ws";
@@ -67,6 +69,18 @@ public class DetailsModel(ApplicationDbContext db, ApiKeyService apiKeys, Connec
         {
             service.IsActive = !service.IsActive;
             await db.SaveChangesAsync();
+        }
+        return RedirectToPage(new { id = Id });
+    }
+
+    public async Task<IActionResult> OnPostRegenerateSubscriberSecretAsync()
+    {
+        var service = await db.TransitServices.FindAsync(Id);
+        if (service is not null)
+        {
+            service.SubscriberSecret = SecretGenerator.Generate();
+            await db.SaveChangesAsync();
+            TempData["NewSubscriberSecret"] = service.SubscriberSecret;
         }
         return RedirectToPage(new { id = Id });
     }
