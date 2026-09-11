@@ -44,5 +44,13 @@ public static class SeedData
         {
             await userManager.AddToRoleAsync(user, AdminRole);
         }
+        else
+        {
+            var logger = services.GetRequiredService<ILogger<WebApplication>>();
+            logger.LogWarning(
+                "SeedAdmin account creation failed for {Email}: {Errors}",
+                email,
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+        }
     }
 }
