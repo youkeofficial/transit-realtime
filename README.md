@@ -83,7 +83,11 @@ comptes admin via `/Admin/Users/Create`. L'auto-inscription publique est désact
      HTTP standard, dès que le module WebSocket Protocol est actif.
 6. Définir `SeedAdmin:Email` / `SeedAdmin:Password` en variables d'environnement IIS (ou
    `appsettings.Production.json`, hors dépôt git) pour le premier compte admin en production.
-7. Vérifier `https://transit-realtime.du-simandou.gov.gn/webhook/{id}` et
+7. Lister dans `Cors:AllowedOrigins` les origines des apps dont le navigateur se connecte au hub
+   (ex: `https://ledelivreur.du-simandou.gov.gn`) : sans cela, `/hub/negotiate` est bloqué par le
+   navigateur. `Webhook:PermitPerMinute` (défaut 60, fenêtre globale à tous les appelants) doit
+   couvrir les diffusions massives : une notification à N destinataires coûte N appels.
+8. Vérifier `https://transit-realtime.du-simandou.gov.gn/webhook/{id}` et
    `wss://transit-realtime.du-simandou.gov.gn/hub`.
 
 Le fichier SQLite (`app.db`) est créé dans le dossier de l'application — s'assurer que le compte du pool

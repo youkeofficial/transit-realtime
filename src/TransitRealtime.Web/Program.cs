@@ -45,11 +45,23 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddFixedWindowLimiter("webhook", limiterOptions =>
     {
-        limiterOptions.PermitLimit = 60;
+        // Global window shared by every caller: a fan-out notification to N users costs N requests.
+        limiterOptions.PermitLimit = builder.Configuration.GetValue("Webhook:PermitPerMinute", 60);
         limiterOptions.Window = TimeSpan.FromMinutes(1);
         limiterOptions.QueueLimit = 0;
     });
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+});
+
+// Browser clients (SignalR) are served from other origins, so /hub/negotiate is a cross-origin POST.
+// Only origins listed in Cors:AllowedOrigins may connect; channels stay gated by JoinChannel tokens.
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("HubClients", policy => policy
+        .WithOrigins(allowedOrigins)
+        .AllowAnyHeader()
+        .WithMethods("GET", "POST"));
 });
 
 builder.WebHost.ConfigureKestrel(options =>
@@ -73,6 +85,8 @@ app.UseHttpsRedirection();
 
 app.UseRouting();
 
+app.UseCors();
+
 app.UseRateLimiter();
 
 app.UseAuthentication();
@@ -82,7 +96,7 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 
-app.MapHub<TransitHub>("/hub");
+app.MapHub<TransitHub>("/hub").RequireCors("HubClients");
 app.MapWebhookEndpoints();
 
 await SeedData.EnsureAdminSeededAsync(app);
